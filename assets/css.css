@@ -1,0 +1,61 @@
+body {
+    font-family: sans-serif;
+}
+
+.wrapper {
+  position: relative;
+  width: 100%;
+  max-width: 1040px;
+  margin: 0 auto;
+  padding: 0 20px;
+  box-sizing: border-box; }
+
+/* Grid
+–––––––––––––––––––––––––––––––––––––––––––––––––– */
+.row{
+    padding-top:1px;
+    padding-bottom:1px;
+    vertical-align: middle;
+    margin-top:0 px;
+    margin-bottom:0 px;
+    max-height: 150 px;
+}
+.column, .columns {
+    margin-left: 4%; 
+    display:inline-block;
+    box-sizing: border-box;
+    vertical-align:middle;
+    max-height: 150 px;
+}
+
+.one.column,.one.columns{
+    width: 14%;
+}
+.two.columns{
+    width: 40%;
+}
+.three.columns{
+    width: 66%;
+}
+/* Base Styles
+–––––––––––––––––––––––––––––––––––––––––––––––––– */
+/* NOTE
+html is set to 62.5% so that all the REM measurements throughout Skeleton
+are based on 10px sizing. So basically 1.5rem = 15px :) */
+html {
+  font-size: 62.5%; }
+body {
+  font-size: 1.5em; /* currently ems cause chrome bug misinterpreting rems on body element */
+  line-height: 1.6;
+  font-weight: 400;
+  font-family: "Open Sans", "HelveticaNeue", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  color: rgb(50, 50, 50); }
+
+/* Typography
+–––––––––––––––––––––––––––––––––––––––––––––––––– */
+h1, h2, h3, h4, h5, h6 {
+  margin-top: 0;
+  margin-bottom: 0;
+  font-weight: 100; }
+h1 { font-size: 2.5rem; line-height: 1.2;  letter-spacing: -.1rem; margin-bottom: 2rem; }
+h2 { font-size: 2.2rem; line-height: 1.25; letter-spacing: -.1rem; margin-bottom: 1.8rem; margin-top: 1.8rem;}
