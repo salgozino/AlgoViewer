@@ -18,10 +18,10 @@ def get_OR(db='rofex.db'):
     columns = ['date','transactTime','instrumentId_symbol','side','avgPx','cumQty','status','text']
     valid_status = ['FILLED','NEW','CANCELLED','REJECTED']
     df_OR = read_table("ORDERREPORT",db).reset_index()
-    
     df_OR = df_OR[columns].loc[df_OR['status'].isin(valid_status)]
     df_OR.transactTime = pd.to_datetime(df_OR.transactTime,utc=False)
     df_OR.date = pd.to_datetime(df_OR.date)
+    df_OR = df_OR.sort_index(ascending=0)
     # df_OR.set_index('transactTime', inplace=True)
     return df_OR
     
@@ -102,6 +102,7 @@ markdown_text = '''
 # AlgoViewer!  - v0.0.2 alfa
 Desde esta app, estaremos visualizando todo lo que hacen los bots. Sus operaciones, ordenes abiertas, etc.
 Se debe elegir el activo a graficar (máximo 3 tickers), junto con la fecha de inicio desde la que se quiere graficar.
+En la tabla de OrderReport se pueden ver todas las ordenes FILLED CANCELLED or REJECTED de los tickers seleccionados.
 '''
 
 #Layout!
@@ -154,7 +155,7 @@ app.layout = html.Div(
     
                 dcc.Interval(
                     id='interval-component',
-                    interval=300*1000, # in milliseconds
+                    interval=30*1000, # in milliseconds
                     n_intervals=0
                 )
         ]
@@ -168,7 +169,6 @@ def update_graph(tickers,date,n_intervals):
     if len(tickers) != 0:
         if (len(tickers)> 3) & (type(tickers) is list):
             tickers = tickers[:3]
-            print(tickers)
         data = []
         tickers = tickers if isinstance(tickers,list) else [tickers]
         for i,ticker in enumerate(tickers,1):
@@ -181,7 +181,7 @@ def update_graph(tickers,date,n_intervals):
                 ))
             
             orders = DBtools.read_orders(ticker,date,db)
-            print(orders)
+            #print(orders)
             # ohlc_graph.dropna(inplace=True)
             if not orders.empty:
                 buys = orders[orders['side']=='BUY']
@@ -270,9 +270,18 @@ def update_graph(tickers,date,n_intervals):
 
 
 
-@app.callback(Output('OrderReport-table', 'data'), [Input('interval-component', 'n_intervals')])
-def update_table(n, maxrows=12):
-    return get_OR(db).to_dict("rows")
+@app.callback(Output('OrderReport-table', 'data'),
+              [Input('ticker', 'value'),
+               Input('interval-component', 'n_intervals')
+               ])
+def update_table(tickers, n, maxrows=12):
+    if type(tickers) != list:
+        tickers = [tickers]
+    OR = get_OR(db)
+    OR = OR[OR['instrumentId_symbol'].str.upper().isin(tickers)]
+    return OR.to_dict("rows")
+
+
 if __name__ == '__main__':
 #    app.run_server(debug=False,
 #                   host='0.0.0.0',
@@ -280,12 +289,3 @@ if __name__ == '__main__':
     app.run_server(debug=True,
                    host='127.0.0.1',
                    port=80)
-
-if __name__ == '__main__':
-    app.run_server(debug=False,
-                   host='0.0.0.0',
-                   port=80)
-#    app.run_server(debug=True,
-#                   host='127.0.0.1',
-#                   port=80)
-    
