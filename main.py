@@ -8,7 +8,11 @@ import plotly.graph_objs as go
 from flask import Flask
 import pandas as pd
 from datetime import datetime
-import DBtools
+
+#Agrego al path la carpeta de AlgoTrading para sacar el DBtools
+import sys
+sys.path.append("../AlgoTrading")
+import utils.DBtools as DBtools
 
 def get_OR(db='rofex.db'):
     columns = ['date','transactTime','instrumentId_symbol','side','avgPx','cumQty','status','text']
@@ -90,16 +94,14 @@ auth = dash_auth.BasicAuth(
     get_valid_usernames()
 )
 
-server = Flask(__name__)
-app = dash.Dash(__name__, server=server)
 
 ## Set the title to the webpage
-app.title = 'AlgoViewer v0.0.1'
+app.title = 'AlgoViewer v0.0.2'
 
 markdown_text = '''
-# AlgoViewer!  - v0.0.1 alfa
+# AlgoViewer!  - v0.0.2 alfa
 Desde esta app, estaremos visualizando todo lo que hacen los bots. Sus operaciones, ordenes abiertas, etc.
-Se debe elegir el activo a graficar, junto con la fecha de inicio desde la que se quiere graficar.
+Se debe elegir el activo a graficar (máximo 3 tickers), junto con la fecha de inicio desde la que se quiere graficar.
 '''
 
 #Layout!
@@ -113,7 +115,7 @@ app.layout = html.Div(
                         dcc.Dropdown(
                             id='ticker',
                             options=[{'label': ticker, 'value': ticker} for ticker in tickers if ticker != 'ORDERREPORT'],
-                            value=tickers[-1],
+                            value="IRFX20",
                             multi=True,
                             )
                         ]),
@@ -125,9 +127,11 @@ app.layout = html.Div(
                         ]),
                 ]
                 ),
+                
                 html.Div(className='row', children=[
                     dcc.Graph(id='graph', animate=True)
                     ]),
+                
                 html.H1("Order Report"),
                 html.Div(className="row",children=[
                     dash_table.DataTable(
@@ -150,7 +154,7 @@ app.layout = html.Div(
     
                 dcc.Interval(
                     id='interval-component',
-                    interval=3*1000, # in milliseconds
+                    interval=300*1000, # in milliseconds
                     n_intervals=0
                 )
         ]
@@ -162,18 +166,45 @@ app.layout = html.Div(
     Input('interval-component', 'n_intervals')])
 def update_graph(tickers,date,n_intervals):
     if len(tickers) != 0:
+        if (len(tickers)> 3) & (type(tickers) is list):
+            tickers = tickers[:3]
+            print(tickers)
         data = []
         tickers = tickers if isinstance(tickers,list) else [tickers]
         for i,ticker in enumerate(tickers,1):
             ohlc_graph = get_ohlc(ticker,'1T',db=db,start_date=date)
-            # ohlc_graph.dropna(inplace=True)
-                
             data.append(go.Scatter(
                 x=ohlc_graph.index,
                 y=ohlc_graph.close,
                 name=ticker,
                 yaxis= 'y' if i==1 else 'y{}'.format(str(i)),
                 ))
+            
+            orders = DBtools.read_orders(ticker,date,db)
+            print(orders)
+            # ohlc_graph.dropna(inplace=True)
+            if not orders.empty:
+                buys = orders[orders['side']=='BUY']
+                sells = orders[orders['side']=='SELL']
+                if not buys.empty:
+                    data.append(go.Scatter(
+                        x=buys.date,
+                        y=buys.avgPx,
+                        name=ticker + ' Buys',
+                        yaxis= 'y' if i==1 else 'y{}'.format(str(i)),
+                        mode = 'markers',   
+                        marker = {'size':12, 'symbol':'triangle-up'}
+                        ))   
+                if not sells.empty:
+                    data.append(go.Scatter(
+                        x=sells.date,
+                        y=sells.avgPx,
+                        yaxis= 'y' if i==1 else 'y{}'.format(str(i)),
+                        name = ticker + ' Sells',
+                        mode = 'markers',   
+                        marker = {'size':12, 'symbol':'triangle-down'}
+                        ))   
+            
         
         if len(tickers) == 1:
             domain=[0., 1]
@@ -237,10 +268,31 @@ def update_graph(tickers,date,n_intervals):
         }
 
 
+
+
 @app.callback(Output('OrderReport-table', 'data'), [Input('interval-component', 'n_intervals')])
 def update_table(n, maxrows=12):
     return get_OR(db).to_dict("rows")
 if __name__ == '__main__':
-    app.run_server(debug=False,
-                   host='0.0.0.0',
+#    app.run_server(debug=False,
+#                   host='0.0.0.0',
+#                   port=80)
+    app.run_server(debug=True,
+                   host='127.0.0.1',
                    port=80)
+
+@app.callback(Output('ticker', 'value'), [Input('ticker', 'value')])
+def limit_values(tickers):
+    if (len(tickers)> 3) & (type(tickers) is list):
+        tickers = tickers[-3:]
+    return tickers
+
+
+if __name__ == '__main__':
+#    app.run_server(debug=False,
+#                   host='0.0.0.0',
+#                   port=80)
+    app.run_server(debug=True,
+                   host='127.0.0.1',
+                   port=80)
+    
