@@ -281,18 +281,11 @@ if __name__ == '__main__':
                    host='127.0.0.1',
                    port=80)
 
-@app.callback(Output('ticker', 'value'), [Input('ticker', 'value')])
-def limit_values(tickers):
-    if (len(tickers)> 3) & (type(tickers) is list):
-        tickers = tickers[-3:]
-    return tickers
-
-
 if __name__ == '__main__':
-#    app.run_server(debug=False,
-#                   host='0.0.0.0',
-#                   port=80)
-    app.run_server(debug=True,
-                   host='127.0.0.1',
+    app.run_server(debug=False,
+                   host='0.0.0.0',
                    port=80)
+#    app.run_server(debug=True,
+#                   host='127.0.0.1',
+#                   port=80)
     
