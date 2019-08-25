@@ -1,11 +1,10 @@
 import dash
-from dash.dependencies import Input, Output, State
+from dash.dependencies import Input, Output
 import dash_table
 import dash_auth
 import dash_core_components as dcc
 import dash_html_components as html
 import plotly.graph_objs as go
-from flask import Flask
 import pandas as pd
 from datetime import datetime
 
@@ -43,12 +42,19 @@ def getOHLC(df,column_name_price = 'LA_price', column_name_size = 'LA_size', dat
         df.index.name = 'date'
     
     df.index = pd.to_datetime(df.index)
+    
     if column_name_price not in df.columns.values:
-        cnames=['open','low','high','close','volume']
-        ohlc = pd.DataFrame(columns=cnames)
+        if 'LA_price' in df.columns.values:
+            #If IV is empty, try with LA_price. For remarkets, that does not get IV values in I.RFX20
+            print(column_name_price)
+            print(df.head())
+            ohlc = df['LA_price'].resample(period).ohlc()
+        else:
+            cnames=['open','low','high','close','volume']
+            ohlc = pd.DataFrame(columns=cnames)
     else:
         ohlc = df[column_name_price].resample(period).ohlc()
-        
+
     try:
         vol  = df[column_name_size].resample(period).sum()
 
@@ -77,7 +83,7 @@ def get_ohlc(ticker='RFX20Mar19', period = '1T', db='rofex.db',start_date=''):
     return ohlc
 
 #Initialize variables
-db = '../AlgoTrading/rofex.db'
+db = '../AlgoTrading/remarkets.db'
 list_of_df = []
 tickers = get_tickers(db)
 df_OR = get_OR(db)
@@ -115,7 +121,7 @@ app.layout = html.Div(
                     html.Div(className='three columns',children=[
                         dcc.Dropdown(
                             id='ticker',
-                            options=[{'label': ticker, 'value': ticker} for ticker in tickers if ticker != 'ORDERREPORT'],
+                            options=[{'label': ticker, 'value': ticker} for ticker in sorted(tickers) if ticker != 'ORDERREPORT'],
                             value="IRFX20",
                             multi=True,
                             )
@@ -139,16 +145,11 @@ app.layout = html.Div(
                         id='OrderReport-table',
                         columns=[{"name": i, "id": i} for i in df_OR.columns],
                         data=df_OR.to_dict("rows"),
-                        filtering=True,
-                        sorting=True,
-                        sorting_type="multi",
-                        pagination_mode="fe",
-                        pagination_settings={
-                            "displayed_pages": 1,
-                            "current_page": 0,
-                            "page_size": 12,
-                        },
-                        navigation="page",
+                        sort_action="native",
+                        sort_mode="multi",
+                        page_action="native",
+                        page_current= 0,
+                        page_size= 10,
                                 ),
                 ]
                 ),
@@ -272,13 +273,26 @@ def update_graph(tickers,date,n_intervals):
 
 @app.callback(Output('OrderReport-table', 'data'),
               [Input('ticker', 'value'),
+               Input('date-picker-single','date'),
                Input('interval-component', 'n_intervals')
                ])
-def update_table(tickers, n, maxrows=12):
+def update_table(tickers, date, n, maxrows=12):
     if type(tickers) != list:
         tickers = [tickers]
     OR = get_OR(db)
+    #filter by ticker
     OR = OR[OR['instrumentId_symbol'].str.upper().isin(tickers)]
+    #filter by date.
+    #Change date input to datetime, and to first minute in the day
+    if 'T' in date:
+        date = datetime.strptime(date,'%Y-%m-%dT%H:%M:%S.%f').replace(hour=0, minute=0)
+    else:
+        date = datetime.strptime(date,'%Y-%m-%d').replace(hour=0, minute=0)
+    OR = OR[OR.date >= date]
+    
+    #filter by order status
+    value_status = ["FILLED","REJECTED","CANCELLED"]
+    OR = OR[OR.status.isin(value_status)]
     return OR.to_dict("rows")
 
 
