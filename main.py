@@ -105,7 +105,7 @@ auth = dash_auth.BasicAuth(
 app.title = 'AlgoViewer v0.0.2'
 
 markdown_text = '''
-# AlgoViewer!  - v0.0.2 alfa
+# AlgoViewer!  - v0.0.3 alfa
 Desde esta app, estaremos visualizando todo lo que hacen los bots. Sus operaciones, ordenes abiertas, etc.
 Se debe elegir el activo a graficar (máximo 3 tickers), junto con la fecha de inicio desde la que se quiere graficar.
 En la tabla de OrderReport se pueden ver todas las ordenes FILLED CANCELLED or REJECTED de los tickers seleccionados.
