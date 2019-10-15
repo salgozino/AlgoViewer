@@ -45,9 +45,9 @@ def getOHLC(df,column_name_price = 'LA_price', column_name_size = 'LA_size', dat
     
     if column_name_price not in df.columns.values:
         if 'LA_price' in df.columns.values:
-            #If IV is empty, try with LA_price. For remarkets, that does not get IV values in I.RFX20
-            print(column_name_price)
-            print(df.head())
+            # If IV is empty, try with LA_price. For remarkets, that does not get IV values in I.RFX20
+            # print(column_name_price)
+            # print(df.head())
             ohlc = df['LA_price'].resample(period).ohlc()
         else:
             cnames=['open','low','high','close','volume']
